@@ -36,6 +36,20 @@
     if (dialog) dialog.remove();
 
     var close = function () { dialog.close(); };
+    var message = h('p', { class: 'note', 'aria-live': 'polite' });
+    var armed = false; // 清除需要按兩次
+
+    var clearBtn = h('button', { class: 'btn danger', type: 'button', onClick: function () {
+      if (!armed) {
+        armed = true;
+        clearBtn.textContent = '確定清除？再按一次';
+        message.textContent = '這個動作無法復原。';
+        return;
+      }
+      ctx.store.clear();
+      close();
+      ctx.rerender();
+    } }, '清除全部進度');
 
     dialog = h('dialog', null,
       h('h2', null, '學習進度'),
@@ -44,23 +58,20 @@
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn', type: 'button', onClick: function () {
           download('jh-learn-progress.json', ctx.store.exportJSON());
+          message.textContent = '已下載 jh-learn-progress.json。';
         } }, '匯出進度檔'),
         h('button', { class: 'btn', type: 'button', onClick: function () {
           pickFile(function (text) {
             var r = ctx.store.importJSON(text);
-            if (!r.ok) { alert('匯入失敗：' + r.reason); return; }
+            if (!r.ok) { message.textContent = '匯入失敗：' + r.reason; return; }
             close();
             ctx.rerender();
           });
         } }, '匯入進度檔'),
-        h('button', { class: 'btn danger', type: 'button', onClick: function () {
-          if (!confirm('確定清除全部進度？這個動作無法復原。')) return;
-          ctx.store.clear();
-          close();
-          ctx.rerender();
-        } }, '清除全部進度'),
+        clearBtn,
         h('button', { class: 'btn', type: 'button', onClick: close }, '關閉')
-      )
+      ),
+      message
     );
     dialog.addEventListener('click', function (e) { if (e.target === dialog) close(); });
     document.body.appendChild(dialog);
