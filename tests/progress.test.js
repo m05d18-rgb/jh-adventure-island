@@ -125,3 +125,28 @@ test('get 回傳的物件修改不影響內部狀態', () => {
   s.get('u').activitiesDone.push('hack');
   assert.deepEqual(s.get('u').activitiesDone, []);
 });
+
+test('storage 為 null 時仍可用且 persistent 為 false', () => {
+  const s = createProgressStore(null);
+  s.markConceptsDone('u');
+  assert.equal(s.get('u').conceptsDone, true);
+  assert.equal(s.persistent, false);
+});
+
+test('validateImport 回報單元數且不改變狀態', () => {
+  const a = createProgressStore(mem());
+  a.markConceptsDone('x'); a.markConceptsDone('y');
+  const text = a.exportJSON();
+  const b = createProgressStore(mem());
+  b.markConceptsDone('z');
+  const r = b.validateImport(text);
+  assert.deepEqual(r, { ok: true, unitCount: 2 });
+  assert.equal(b.get('z').conceptsDone, true);
+  assert.equal(b.get('x').conceptsDone, false);
+});
+
+test('validateImport 拒絕壞資料', () => {
+  const s = createProgressStore(mem());
+  assert.equal(s.validateImport('nope').ok, false);
+  assert.equal(s.validateImport(JSON.stringify({ version: 9, units: {} })).ok, false);
+});

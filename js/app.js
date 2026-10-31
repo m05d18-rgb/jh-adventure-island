@@ -9,7 +9,10 @@
 
   var h = window.APP_UI.h;
 
-  var store = window.APP_PROGRESS.createProgressStore(window.localStorage);
+  // 某些瀏覽器設定下，光是讀取 window.localStorage 這個屬性就會丟 SecurityError
+  var storage = null;
+  try { storage = window.localStorage; } catch (e) { storage = null; }
+  var store = window.APP_PROGRESS.createProgressStore(storage);
   var root = document.getElementById('app');
   var currentRoute = { view: 'home' };
 
@@ -27,6 +30,7 @@
   function render(route) {
     currentRoute = route;
     var views = window.APP_VIEWS || {};
+    if (views.teardownUnit) views.teardownUnit();
     root.innerHTML = '';
     root.className = '';
     window.scrollTo(0, 0);

@@ -10,11 +10,44 @@
     { key: 'wrong', label: '錯題本' },
   ];
 
-  var mounted = []; // 目前掛載中的活動，切換分頁時清掉
+  var mounted = []; // 目前掛載中的活動與計時器，切換分頁時清掉
+  var current = null; // { root, ctx, unit, tab, tabsEl }
 
   function unmountAll() {
     mounted.forEach(function (m) { try { m.destroy(); } catch (e) { /* ignore */ } });
     mounted = [];
+  }
+
+  function later(fn, ms) {
+    var id = setTimeout(fn, ms);
+    mounted.push({ destroy: function () { clearTimeout(id); } });
+  }
+
+  // 只重繪分頁列（完成狀態、錯題數），不動內容
+  function refreshTabs() {
+    if (!current || !current.tabsEl.isConnected) return;
+    var fresh = buildTabs(current.ctx, current.unit, current.tab);
+    current.tabsEl.replaceWith(fresh);
+    current.tabsEl = fresh;
+  }
+
+  function buildTabs(ctx, unit, tab) {
+    var h = ctx.h;
+    var p = ctx.store.get(unit.id);
+    var total = unit.activities.length;
+    var done = {
+      concepts: p.conceptsDone,
+      activities: total > 0 && p.activitiesDone.length >= total,
+      quiz: p.bestScore != null,
+      wrong: p.wrongIds.length === 0 && p.bestScore != null,
+    };
+    return h('div', { class: 'tabs', role: 'tablist' }, TABS.map(function (t) {
+      return h('button', {
+        type: 'button', role: 'tab', 'aria-selected': t.key === tab ? 'true' : 'false',
+        onClick: function () { ctx.navigate({ view: 'unit', unitId: unit.id, tab: t.key }); },
+      }, t.label, done[t.key] ? h('span', { class: 'tick', 'aria-label': '已完成' }, '✓') : null,
+        t.key === 'wrong' && p.wrongIds.length ? h('span', { class: 'badge bad' }, p.wrongIds.length) : null);
+    }));
   }
 
   function optionLabel(i) { return String.fromCharCode(65 + i); }
@@ -62,6 +95,7 @@
             ctx.store.markActivityDone(unit.id, a.id);
             status.className = 'badge ok';
             status.textContent = '✓ 完成';
+            refreshTabs();
           } });
           mounted.push(instance);
         }
@@ -106,6 +140,7 @@
 
       function showQuestion() {
         root.innerHTML = '';
+        if (idx > 0) window.scrollTo(0, Math.max(0, root.getBoundingClientRect().top + window.scrollY - 70));
         var q = order[idx];
         var explain = h('div');
         var next = h('button', { class: 'btn primary', type: 'button', disabled: true, onClick: function () {
@@ -142,6 +177,7 @@
       function finish() {
         var r = window.APP_QUIZ.scoreQuiz(unit.quiz, answers);
         ctx.store.recordQuiz(unit.id, r);
+        refreshTabs();
         var secs = Math.round((Date.now() - startedAt) / 1000);
         var wrongQs = unit.quiz.filter(function (q) { return r.wrongIds.indexOf(q.id) !== -1; });
         root.innerHTML = '';
@@ -199,7 +235,12 @@
               h('p', { style: { margin: '6px 0 0' } }, q.explanation)));
             if (ok) {
               ctx.store.resolveWrong(unit.id, q.id);
-              setTimeout(function () { ctx.rerender(); }, 1800);
+              refreshTabs();
+              // 只重繪錯題本這個面板；若使用者已離開這個分頁（面板被拆掉）就什麼都不做
+              later(function () {
+                if (!root.isConnected) return;
+                renderWrong(root, ctx, unit);
+              }, 1800);
             }
           } }, h('span', { class: 'mark' }, optionLabel(i)), h('span', null, opt));
         });
@@ -213,11 +254,15 @@
   }
 
   // ---------- 主畫面 ----------
+  // 離開單元頁時由 app.js 呼叫，清掉活動與計時器
+  window.APP_VIEWS.teardownUnit = function () {
+    unmountAll();
+    current = null;
+  };
+
   window.APP_VIEWS.unit = function (root, ctx, unit, tab) {
     var h = ctx.h;
     var s = ctx.subjects[unit.subject];
-    var p = ctx.store.get(unit.id);
-    var total = unit.activities.length;
     unmountAll();
     root.className = s.cls;
 
@@ -228,19 +273,9 @@
       h('span', { class: 'muted small' }, unit.publisher + '版')
     ));
 
-    var done = {
-      concepts: p.conceptsDone,
-      activities: total > 0 && p.activitiesDone.length >= total,
-      quiz: p.bestScore != null,
-      wrong: p.wrongIds.length === 0 && p.bestScore != null,
-    };
-    root.appendChild(h('div', { class: 'tabs', role: 'tablist' }, TABS.map(function (t) {
-      return h('button', {
-        type: 'button', role: 'tab', 'aria-selected': t.key === tab ? 'true' : 'false',
-        onClick: function () { ctx.navigate({ view: 'unit', unitId: unit.id, tab: t.key }); },
-      }, t.label, done[t.key] ? h('span', { class: 'tick', 'aria-label': '已完成' }, '✓') : null,
-        t.key === 'wrong' && p.wrongIds.length ? h('span', { class: 'badge bad' }, p.wrongIds.length) : null);
-    })));
+    var tabsEl = buildTabs(ctx, unit, tab);
+    root.appendChild(tabsEl);
+    current = { root: root, ctx: ctx, unit: unit, tab: tab, tabsEl: tabsEl };
 
     var panel = h('div', { role: 'tabpanel' });
     root.appendChild(panel);

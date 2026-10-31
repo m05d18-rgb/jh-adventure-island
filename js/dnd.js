@@ -20,8 +20,22 @@
       zones.forEach(function (z) { z.el.classList.remove('target'); });
     }
 
+    function zoneContaining(el) {
+      return zones.find(function (z) { return z.el.contains(el); }) || null;
+    }
+
     function select(el) {
       if (selected === el) return clearSelection();
+      // 已有選取項目時，點到「放在某個放置區裡的另一個項目」視為放到那一區（排序、填空的交換）
+      if (selected) {
+        var z = zoneContaining(el);
+        if (z && !z.el.classList.contains('correct') && !z.el.contains(selected)) {
+          var item = selected;
+          clearSelection();
+          z.onDrop(item._dndPayload, z.el, item);
+          return;
+        }
+      }
       clearSelection();
       selected = el;
       el.classList.add('selected');

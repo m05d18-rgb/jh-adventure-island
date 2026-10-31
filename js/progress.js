@@ -60,9 +60,10 @@
 
   function createProgressStore(storage) {
     var state = emptyState();
-    var persistent = true;
+    var persistent = !!storage;
 
     function load() {
+      if (!storage) return;
       var raw = null;
       try {
         raw = storage.getItem(KEY);
@@ -76,6 +77,7 @@
     }
 
     function save() {
+      if (!storage) return;
       try {
         storage.setItem(KEY, JSON.stringify(state));
       } catch (e) {
@@ -133,6 +135,12 @@
       exportJSON: function () {
         return JSON.stringify(state, null, 2);
       },
+      // 只檢查不套用，供匯入前的確認畫面使用
+      validateImport: function (text) {
+        var parsed = parseState(text);
+        if (!parsed.ok) return { ok: false, reason: parsed.reason };
+        return { ok: true, unitCount: Object.keys(parsed.state.units).length };
+      },
       importJSON: function (text) {
         var parsed = parseState(text);
         if (!parsed.ok) return { ok: false, reason: parsed.reason };
@@ -142,6 +150,7 @@
       },
       clear: function () {
         state = emptyState();
+        if (!storage) return;
         try {
           storage.removeItem(KEY);
         } catch (e) {

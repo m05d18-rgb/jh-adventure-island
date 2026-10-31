@@ -26,6 +26,7 @@
       if (!f) return;
       var reader = new FileReader();
       reader.onload = function () { cb(String(reader.result)); };
+      reader.onerror = function () { cb(''); };
       reader.readAsText(f);
     });
     input.click();
@@ -37,6 +38,7 @@
 
     var close = function () { dialog.close(); };
     var message = h('p', { class: 'note', 'aria-live': 'polite' });
+    var confirmRow = h('div', { class: 'btn-row' });
     var armed = false; // 清除需要按兩次
 
     var clearBtn = h('button', { class: 'btn danger', type: 'button', onClick: function () {
@@ -62,16 +64,27 @@
         } }, '匯出進度檔'),
         h('button', { class: 'btn', type: 'button', onClick: function () {
           pickFile(function (text) {
-            var r = ctx.store.importJSON(text);
+            var r = ctx.store.validateImport(text);
             if (!r.ok) { message.textContent = '匯入失敗：' + r.reason; return; }
-            close();
-            ctx.rerender();
+            // 匯入會覆蓋目前進度，先確認
+            message.textContent = '這份檔案有 ' + r.unitCount + ' 個單元的進度，匯入會覆蓋目前的進度。';
+            confirmRow.innerHTML = '';
+            confirmRow.appendChild(h('button', { class: 'btn danger', type: 'button', onClick: function () {
+              ctx.store.importJSON(text);
+              close();
+              ctx.rerender();
+            } }, '確定覆蓋並匯入'));
+            confirmRow.appendChild(h('button', { class: 'btn', type: 'button', onClick: function () {
+              confirmRow.innerHTML = '';
+              message.textContent = '已取消匯入。';
+            } }, '取消'));
           });
         } }, '匯入進度檔'),
         clearBtn,
         h('button', { class: 'btn', type: 'button', onClick: close }, '關閉')
       ),
-      message
+      message,
+      confirmRow
     );
     dialog.addEventListener('click', function (e) { if (e.target === dialog) close(); });
     document.body.appendChild(dialog);
