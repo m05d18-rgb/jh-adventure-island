@@ -31,11 +31,12 @@
     currentRoute = route;
     var views = window.APP_VIEWS || {};
     if (views.teardownUnit) views.teardownUnit();
+    if (views.teardownMap) views.teardownMap();
     root.innerHTML = '';
     root.className = '';
     window.scrollTo(0, 0);
 
-    if (route.view === 'home') return views.home(root, ctx);
+    if (route.view === 'home') return (views.map || views.home)(root, ctx);
     if (route.view === 'subject') return views.subject(root, ctx, route.subject, route.track);
     if (route.view === 'unit') {
       var unit = ctx.content.get(route.unitId);

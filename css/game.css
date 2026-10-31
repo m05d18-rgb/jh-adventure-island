@@ -22,6 +22,7 @@ body.map-mode main#app { max-width: none; padding: 0; }
 }
 .island-label .num { font-weight: 700; color: var(--subject-color, var(--accent)); }
 .island-label.hidden { opacity: 0; pointer-events: none; }
+.map-labels.mid .island-label .title { display: none; }
 .island-label.flagged { border-color: var(--gold); }
 .island-label.current { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
 
@@ -47,6 +48,7 @@ body.map-mode main#app { max-width: none; padding: 0; }
 }
 .map-hint .owl { width: 40px; height: 40px; flex: none; }
 .map-hint .goto { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.map-hint .btn { white-space: nowrap; flex: none; }
 
 .map-side {
   position: absolute; top: 0; right: 0; bottom: 0; width: 340px; z-index: 6;

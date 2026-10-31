@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>地圖試驗頁</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/game.css">
+  <style>#root { position: relative; height: 70vh; } #log { font-family: monospace; font-size: 0.85rem; }</style>
+</head>
+<body>
+  <main id="app" style="max-width:none;padding:0">
+    <div id="root" class="map-root"></div>
+    <div style="padding:10px 16px">
+      <button class="btn" id="b-dispose">dispose</button>
+      <button class="btn" id="b-fly">flyTo 島 3</button>
+      <span id="log"></span>
+    </div>
+  </main>
+  <script src="../js/vendor/three.min.js"></script>
+  <script src="../js/game-logic.js"></script>
+  <script src="../js/map/layout.js"></script>
+  <script src="../js/map/scene.js"></script>
+  <script src="../js/map/island.js"></script>
+  <script src="../js/map/labels.js"></script>
+  <script>
+    var log = document.getElementById('log');
+    var units = [];
+    for (var i = 1; i <= 7; i++) units.push({ id: 'b' + i, subject: 'bio', track: null, order: i, title: '生物 ' + i });
+    for (var j = 1; j <= 3; j++) units.push({ id: 'g' + j, subject: 'soc', track: 'geo', order: j, title: '地理 ' + j });
+    units.push({ id: 'h1', subject: 'soc', track: 'hist', order: 1, title: '歷史 1' });
+    units.push({ id: 'c1', subject: 'soc', track: 'civ', order: 1, title: '公民 1' });
+    var lay = APP_LAYOUT.layoutIslands(units);
+    var root = document.getElementById('root');
+    var S = APP_MAP.createScene(root, { isMobile: false });
+    var labels = APP_MAP.createLabels(root);
+    var groups = [], bodies = [];
+    lay.islands.forEach(function (isl, i) {
+      var g = APP_MAP.buildIsland({ id: isl.id, x: isl.x, z: isl.z, seed: i + 1, state: i < 2 ? 'flag' : (i === 2 ? 'progress' : 'new') });
+      S.add(g); groups.push(g); bodies.push(g.userData.body, g.userData.top);
+      var el = document.createElement('div'); el.textContent = isl.unit.title + ' ★' + (i < 2 ? 3 : 0) + '/3';
+      labels.add(isl.id, el, new THREE.Vector3(isl.x, 2.6, isl.z));
+      labels.setImportant(isl.id, i < 3);
+    });
+    lay.bridges.forEach(function (b) {
+      var a = lay.islands.find(function (x) { return x.id === b.from; }), c = lay.islands.find(function (x) { return x.id === b.to; });
+      var m = APP_MAP.buildBridge(a, c); if (m) S.add(m);
+    });
+    for (var k = 0; k < 8; k++) S.add(APP_MAP.buildDecor(k + 1, -60 + k * 17 + (k % 2) * 5, 30 + (k % 3) * 12));
+    var owl = APP_MAP.buildOwl();
+    owl.position.set(lay.islands[2].x + 1.2, 1.1, lay.islands[2].z + 1.4); owl.userData.baseY = 1.1;
+    S.add(owl);
+    S.setTarget((lay.bounds.minX + lay.bounds.maxX) / 2, (lay.bounds.minZ + lay.bounds.maxZ) / 2);
+    S.orbit.distance = 70;
+    window.__frames = 0;
+    S.onFrame(function (t) { window.__frames++; owl.userData.bob(t); groups.forEach(function (g) { APP_MAP.animateIsland(g, t); }); labels.update(S.project, S.orbit.distance); });
+    S.onClick(function (x, y) { var hit = S.raycast(x, y, bodies); log.textContent = 'click: ' + (hit ? hit.userData.islandId : 'none'); window.__lastHit = hit ? hit.userData.islandId : null; });
+    S.start();
+    window.__S = S; window.__lay = lay;
+    document.getElementById('b-dispose').onclick = function () { S.dispose(); labels.destroy(); log.textContent = 'disposed'; };
+    document.getElementById('b-fly').onclick = function () { S.flyTo(lay.islands[2].x, lay.islands[2].z, 30, 600).then(function () { log.textContent = 'flew'; }); };
+  </script>
+</body>
+</html>
