@@ -141,6 +141,9 @@ a.card:hover, button.card:hover { text-decoration: none; border-color: var(--acc
   font-weight: 700;
 }
 .tabs .tick { color: var(--ok); }
+@media (max-width: 420px) {
+  .tabs button { padding: 8px 8px; font-size: 0.95rem; gap: 3px; }
+}
 
 /* ===== 進度條、徽章 ===== */
 .progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px; }
