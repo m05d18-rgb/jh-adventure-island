@@ -213,3 +213,14 @@ test('clear 連名字一起清', () => {
   s.clear();
   assert.equal(s.getPlayer().name, '');
 });
+
+test('舊格式匯入後等級與徽章可回填', () => {
+  const GAME = require('../js/game-logic.js');
+  const s = createProgressStore(mem());
+  const old = JSON.stringify({ version: 1, units: { 'bio-ch1': { conceptsDone: true, activitiesDone: ['a1', 'a2'], bestScore: 5, quizTotal: 5, attempts: 2, wrongIds: [] } } });
+  assert.equal(s.importJSON(old).ok, true);
+  const unit = { id: 'bio-ch1', subject: 'bio', activities: [{ id: 'a1' }, { id: 'a2' }], quiz: [{}, {}, {}, {}, {}] };
+  assert.equal(GAME.computeStars(s.get('bio-ch1'), unit).flag, true);
+  assert.equal(GAME.totalXp(s.allUnits()), 20 + 30 + 30); // rightEverIds 舊檔沒有，不計
+  assert.deepEqual(GAME.computeBadges(s.allUnits(), [unit], s.getPlayer().streak), ['first-star', 'first-flag', 'perfect']);
+});

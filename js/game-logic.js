@@ -85,10 +85,24 @@
       'clean-book': clean,
       'streak-3': count >= 3,
       'streak-7': count >= 7,
-      'bio-all': bySubject.bio.n > 0 && bySubject.bio.flags === bySubject.bio.n,
-      'soc-all': bySubject.soc.n > 0 && bySubject.soc.flags === bySubject.soc.n,
+      // 「島主」要該科至少 2 座島，避免第一面金旗就順便拿到、之後加單元又被收回
+      'bio-all': bySubject.bio.n >= 2 && bySubject.bio.flags === bySubject.bio.n,
+      'soc-all': bySubject.soc.n >= 2 && bySubject.soc.flags === bySubject.soc.n,
     };
     return BADGES.filter(function (b) { return earned[b.id]; }).map(function (b) { return b.id; });
+  }
+
+  // 顯示用：曾經拿到的徽章不會被收回（computed ∪ seen），依 BADGES 順序
+  function mergeBadges(computed, seen) {
+    var set = {};
+    (computed || []).concat(seen || []).forEach(function (id) { set[id] = true; });
+    return BADGES.filter(function (b) { return set[b.id]; }).map(function (b) { return b.id; });
+  }
+
+  // 顯示用：連續天數若已中斷（上次紀錄距今超過 1 天）顯示 0
+  function currentStreak(streak, today) {
+    if (!streak || !streak.last) return 0;
+    return dayDiff(streak.last, today) > 1 ? 0 : streak.count;
   }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -123,6 +137,8 @@
     levelFor: levelFor,
     BADGES: BADGES,
     computeBadges: computeBadges,
+    mergeBadges: mergeBadges,
+    currentStreak: currentStreak,
     touchStreak: touchStreak,
     dayDiff: dayDiff,
     todayStr: todayStr,

@@ -36,7 +36,11 @@
     var h = ctx.h;
     if (dialog) dialog.remove();
 
-    var close = function () { dialog.close(); };
+    var renamed = false;
+    var close = function () {
+      dialog.close();
+      if (renamed) ctx.rerender(); // 改名後讓 HUD 立刻更新
+    };
     var message = h('p', { class: 'note', 'aria-live': 'polite' });
     var confirmRow = h('div', { class: 'btn-row' });
     var armed = false; // 清除需要按兩次
@@ -55,9 +59,10 @@
 
     var GAME = window.APP_GAME;
     var player = ctx.store.getPlayer();
-    var earned = GAME.computeBadges(ctx.store.allUnits(), ctx.content.all(), player.streak);
+    var earned = GAME.mergeBadges(GAME.computeBadges(ctx.store.allUnits(), ctx.content.all(), player.streak), player.badgesSeen);
+    var streakNow = GAME.currentStreak(player.streak, GAME.todayStr());
     var nameInput = h('input', { type: 'text', maxlength: '12', value: player.name, 'aria-label': '名字', style: { font: 'inherit', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)', color: 'var(--fg)', width: '100%' },
-      onChange: function () { ctx.store.setName(nameInput.value); message.textContent = '名字已更新。'; } });
+      onChange: function () { ctx.store.setName(nameInput.value); renamed = true; message.textContent = '名字已更新。'; } });
     var shelf = h('div', { class: 'badge-shelf' }, GAME.BADGES.map(function (b) {
       var got = earned.indexOf(b.id) !== -1;
       return h('div', { class: 'badge-item' + (got ? ' earned' : ''), title: b.desc },
@@ -67,7 +72,7 @@
     dialog = h('dialog', null,
       h('h2', null, '學習進度'),
       h('label', { class: 'small muted' }, '名字', nameInput),
-      h('p', { class: 'small', style: { margin: '10px 0 0' } }, '🔥 連續 ' + (player.streak ? player.streak.count : 0) + ' 天　🏅 徽章 ' + earned.length + ' / ' + GAME.BADGES.length),
+      h('p', { class: 'small', style: { margin: '10px 0 0' } }, '🔥 連續 ' + streakNow + ' 天　🏅 徽章 ' + earned.length + ' / ' + GAME.BADGES.length),
       shelf,
       h('p', { class: 'muted small', style: { marginTop: '14px' } }, '進度存在這個瀏覽器裡。換裝置時可以先匯出，再到另一台匯入。'),
       ctx.store.persistent ? null : h('p', { class: 'note' }, '這個瀏覽器無法儲存進度。'),
@@ -102,6 +107,7 @@
     );
     dialog.addEventListener('click', function (e) { if (e.target === dialog) close(); });
     document.body.appendChild(dialog);
-    dialog.showModal();
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', ''); // 舊瀏覽器沒有 showModal
   };
 })();

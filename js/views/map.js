@@ -14,11 +14,16 @@
     return (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || window.innerWidth < 768;
   }
 
+  var webglSupport = null; // 只探測一次，探測用的 context 立刻釋放
   function hasWebGL() {
+    if (webglSupport !== null) return webglSupport;
     try {
       var c = document.createElement('canvas');
-      return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
-    } catch (e) { return false; }
+      var gl = window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'));
+      webglSupport = !!gl;
+      if (gl) { var ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); }
+    } catch (e) { webglSupport = false; }
+    return webglSupport;
   }
 
   function unitNumber(unit) {
@@ -68,7 +73,7 @@
     var stars = 0, flags = 0;
     units.forEach(function (u) { var s = GAME.computeStars(states[u.id] || ctx.store.get(u.id), u); stars += s.count; if (s.flag) flags += 1; });
     var pct = Math.round(((xp - lv.levelStart) / (lv.nextAt - lv.levelStart)) * 100);
-    var streak = player.streak ? player.streak.count : 0;
+    var streak = GAME.currentStreak(player.streak, GAME.todayStr());
     return h('div', { class: 'hud' },
       h('div', null, h('span', { class: 'name' }, player.name || '冒險者'), h('span', { class: 'lv' }, 'Lv.' + lv.level)),
       h('div', { class: 'xp-bar', title: xp + ' / ' + lv.nextAt + ' XP' }, h('span', { style: { width: pct + '%' } })),
@@ -141,6 +146,7 @@
 
     // 咕博士站在該去的島
     var target = LAYOUT.nearestIslandForPlayer(lay.islands, states, player.lastUnit);
+    var allFlagged = target && GAME.computeStars(states[target.id] || ctx.store.get(target.id), target.unit).flag;
     var owl = MAP.buildOwl();
     if (target) {
       owl.position.set(target.x + 1.3, 1.1, target.z + 1.5);
@@ -177,11 +183,12 @@
       labels.update(S.project, S.orbit.distance);
     });
 
-    var flying = false;
+    var flying = false, disposed = false;
     function goTo(isl) {
       if (flying) return;
       flying = true;
       S.flyTo(isl.x, isl.z, 28, 600).then(function () {
+        if (disposed) return; // 飛近途中使用者已經離開首頁
         ctx.navigate({ view: 'unit', unitId: isl.id });
       });
     }
@@ -197,8 +204,8 @@
     var hint = h('div', { class: 'map-hint' },
       h('div', { class: 'bubble-inline' },
         h('span', { html: M.svg('happy') }),
-        h('span', null, target ? M.pick('mapHint', { name: player.name, unit: target.unit.title }) : '所有島都升旗了，太厲害！'),
-        target ? h('button', { class: 'btn primary', type: 'button', onClick: function () { goTo(target); } }, '出發 →') : null));
+        h('span', null, target && !allFlagged ? M.pick('mapHint', { name: player.name, unit: target.unit.title }) : player.name + '，所有島都升旗了，太厲害！'),
+        target && !allFlagged ? h('button', { class: 'btn primary', type: 'button', onClick: function () { goTo(target); } }, '出發 →') : null));
     mapRoot.appendChild(hint);
 
     var side = h('aside', { class: 'map-side' },
@@ -214,7 +221,7 @@
     mapRoot.appendChild(toggle);
 
     S.start();
-    current = { scene: S, labels: labels, root: mapRoot };
+    current = { scene: S, labels: labels, root: mapRoot, onDispose: function () { disposed = true; } };
   };
 
   function fallback(root, mapRoot, ctx, reason) {
@@ -233,6 +240,7 @@
   window.APP_VIEWS.teardownMap = function () {
     document.body.classList.remove('map-mode');
     if (!current) return;
+    if (current.onDispose) current.onDispose();
     if (current.scene) current.scene.dispose();
     if (current.labels) current.labels.destroy();
     current = null;

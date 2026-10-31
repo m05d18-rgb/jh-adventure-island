@@ -74,11 +74,14 @@
   function showFlagBanner(ctx, unit) {
     if (!current || !current.panel || current.panel.querySelector('.flag-banner')) return;
     var h = ctx.h;
-    current.panel.insertBefore(h('div', { class: 'flag-banner' },
+    var banner = h('div', { class: 'flag-banner' },
       h('span', { style: { fontSize: '1.6rem' } }, '🚩'),
       h('div', { style: { flex: '1' } }, h('strong', null, '三顆星集滿，金旗升起！'), h('div', { class: 'small muted' }, unit.title)),
       h('a', { class: 'btn primary', href: '#/' }, '回地圖看金旗 →')
-    ), current.panel.firstChild);
+    );
+    current.panel.insertBefore(banner, current.panel.firstChild);
+    // 觸發時使用者通常在頁面底部，要捲到看得見橫幅
+    setTimeout(function () { if (banner.isConnected && banner.scrollIntoView) banner.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 350);
   }
 
   // 只重繪分頁列與星星，不動內容

@@ -27,8 +27,20 @@
         h('button', { class: 'btn primary', type: 'submit', style: { width: '100%' } }, '開始冒險')
       )
     );
-    // 不給關閉：名字是必填
-    dialog.addEventListener('cancel', function (e) { e.preventDefault(); });
+    // 舊瀏覽器沒有 showModal：直接用預設名字放行，之後可在「進度」改名
+    if (typeof dialog.showModal !== 'function') {
+      ctx.store.setName('冒險者');
+      onDone('冒險者');
+      return null;
+    }
+    // 按 Escape 也用預設名放行，家長先看看網站不必被卡住
+    dialog.addEventListener('cancel', function (e) {
+      e.preventDefault();
+      ctx.store.setName('冒險者');
+      dialog.close();
+      dialog.remove();
+      onDone('冒險者');
+    });
     document.body.appendChild(dialog);
     dialog.showModal();
     setTimeout(function () { input.focus(); }, 50);

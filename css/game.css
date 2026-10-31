@@ -10,7 +10,7 @@
 
 /* ---- 地圖頁 ---- */
 body.map-mode main#app { max-width: none; padding: 0; }
-.map-root { position: relative; width: 100%; height: calc(100vh - 61px); min-height: 480px; overflow: hidden; background: linear-gradient(var(--map-sky-top), var(--map-sky-bottom)); }
+.map-root { position: relative; width: 100%; height: calc(100vh - 61px); height: calc(100dvh - 61px); min-height: 480px; overflow: hidden; background: linear-gradient(var(--map-sky-top), var(--map-sky-bottom)); }
 .map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .map-canvas.dragging { cursor: grabbing; }
 .map-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
@@ -24,9 +24,10 @@ body.map-mode main#app { max-width: none; padding: 0; }
 .island-label.hidden { opacity: 0; pointer-events: none; }
 .map-labels.mid .island-label .title { display: none; }
 .island-label.flagged { border-color: var(--gold); }
-.island-label.current { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.island-label.current { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
 
 .hud {
+  background: var(--card);
   position: absolute; top: 12px; left: 12px; z-index: 5;
   background: color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter: blur(6px);
   border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow);
@@ -51,7 +52,7 @@ body.map-mode main#app { max-width: none; padding: 0; }
 .map-hint .btn { white-space: nowrap; flex: none; }
 
 .map-side {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 340px; z-index: 6;
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(340px, 100%); z-index: 6;
   background: var(--card); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px;
   transform: translateX(100%); transition: transform 0.25s;
 }
@@ -122,10 +123,10 @@ body.has-mascot main#app { padding-bottom: 110px; }
 
 /* ---- 單元頁星星與金旗提示 ---- */
 .unit-stars { margin-left: 6px; vertical-align: middle; }
-.flag-banner { background: color-mix(in srgb, var(--gold) 18%, var(--card)); border: 1px solid var(--gold); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.flag-banner { background: var(--card); background: color-mix(in srgb, var(--gold) 18%, var(--card)); border: 1px solid var(--gold); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* ---- 徽章櫃 ---- */
 .badge-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
 .badge-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: 0.85rem; opacity: 0.45; }
-.badge-item.earned { opacity: 1; border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--card)); }
+.badge-item.earned { opacity: 1; border-color: var(--gold); background: var(--card); background: color-mix(in srgb, var(--gold) 12%, var(--card)); }
 .badge-item .bn { font-weight: 700; display: block; }

@@ -106,8 +106,14 @@
       if (pointerCount() === 0) {
         interacting = false;
         el.classList.remove('dragging');
-        if (!moved && clickHandler) clickHandler(e.clientX, e.clientY);
+        if (!moved && e.type !== 'pointercancel' && clickHandler) clickHandler(e.clientX, e.clientY);
         dragStart = null;
+      } else if (pointerCount() === 1) {
+        // 雙指放開一指：以剩下那指的位置重新開始拖曳，避免鏡頭跳動
+        var rest = pointers[Object.keys(pointers)[0]];
+        dragStart = { x: rest.x, y: rest.y };
+        startAngle = orbit.angle;
+        moved = true;
       }
     }
     function onWheel(e) {
@@ -128,7 +134,14 @@
     var running = false, raf = 0, dirty = true, frameFns = [], lastTime = 0, tweens = [];
     var hiddenPause = false;
 
-    function onVis() { hiddenPause = document.hidden; if (!hiddenPause) { dirty = true; loop(performance.now()); } }
+    function onVis() {
+      hiddenPause = document.hidden;
+      if (!hiddenPause && running) {
+        cancelAnimationFrame(raf); // 佇列裡可能還有一個舊的 rAF，先取消避免兩條迴圈
+        dirty = true;
+        raf = requestAnimationFrame(loop);
+      }
+    }
     document.addEventListener('visibilitychange', onVis);
 
     function animateSea(t) {
@@ -221,6 +234,7 @@
         }
       });
       renderer.dispose();
+      if (renderer.forceContextLoss) renderer.forceContextLoss(); // r158 的 dispose 不會釋放 WebGL context
       el.remove();
     }
 

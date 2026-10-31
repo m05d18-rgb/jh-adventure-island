@@ -42,19 +42,19 @@ test('徽章：first-star / first-flag / perfect / clean-book / bio-all', () => 
   assert.deepEqual(computeBadges({ u: st({}) }, units, null), []);
   assert.deepEqual(computeBadges({ u: st({ conceptsDone: true }) }, units, null), ['first-star']);
   const full = st({ conceptsDone: true, activitiesDone: ['a1', 'a2'], bestScore: 5, quizTotal: 5, resolvedCount: 1, wrongIds: [] });
-  assert.deepEqual(computeBadges({ u: full }, units, null), ['first-star', 'first-flag', 'perfect', 'clean-book', 'bio-all']);
+  assert.deepEqual(computeBadges({ u: full }, units, null), ['first-star', 'first-flag', 'perfect', 'clean-book']);
   const notClean = st({ resolvedCount: 1, wrongIds: ['q9'] });
   assert.ok(!computeBadges({ u: notClean }, units, null).includes('clean-book'));
 });
 
 test('徽章：streak 與 soc-all', () => {
-  const soc = [{ id: 's1', subject: 'soc', activities: [], quiz: [{}] }];
+  const soc = [{ id: 's1', subject: 'soc', activities: [], quiz: [{}] }, { id: 's2', subject: 'soc', activities: [], quiz: [{}] }];
   const done = st({ conceptsDone: true, bestScore: 1, quizTotal: 1 });
-  assert.ok(computeBadges({ s1: done }, soc, { count: 3 }).includes('streak-3'));
-  assert.ok(!computeBadges({ s1: done }, soc, { count: 3 }).includes('streak-7'));
-  assert.ok(computeBadges({ s1: done }, soc, { count: 7 }).includes('streak-7'));
-  assert.ok(computeBadges({ s1: done }, soc, null).includes('soc-all'));
-  assert.ok(!computeBadges({ s1: done }, soc, null).includes('bio-all'));
+  assert.ok(computeBadges({ s1: done, s2: done }, soc, { count: 3 }).includes('streak-3'));
+  assert.ok(!computeBadges({ s1: done, s2: done }, soc, { count: 3 }).includes('streak-7'));
+  assert.ok(computeBadges({ s1: done, s2: done }, soc, { count: 7 }).includes('streak-7'));
+  assert.ok(computeBadges({ s1: done, s2: done }, soc, null).includes('soc-all'));
+  assert.ok(!computeBadges({ s1: done, s2: done }, soc, null).includes('bio-all'));
 });
 
 test('dayDiff 與 touchStreak', () => {
@@ -69,4 +69,27 @@ test('dayDiff 與 touchStreak', () => {
 
 test('todayStr 格式', () => {
   assert.match(todayStr(new Date(2026, 0, 5)), /^2026-01-05$/);
+});
+
+test('bio-all / soc-all 需要該科至少 2 座島', () => {
+  const full = st({ conceptsDone: true, activitiesDone: ['a1', 'a2'], bestScore: 5, quizTotal: 5 });
+  assert.ok(!computeBadges({ u: full }, [unit], null).includes('bio-all'));
+  const unit2 = Object.assign({}, unit, { id: 'u2' });
+  assert.ok(computeBadges({ u: full, u2: full }, [unit, unit2], null).includes('bio-all'));
+  assert.ok(!computeBadges({ u: full }, [unit, unit2], null).includes('bio-all'));
+});
+
+test('mergeBadges 保留曾獲得的徽章並依固定順序', () => {
+  const { mergeBadges } = require('../js/game-logic.js');
+  assert.deepEqual(mergeBadges(['first-star'], ['streak-7', 'first-star']), ['first-star', 'streak-7']);
+  assert.deepEqual(mergeBadges([], []), []);
+  assert.deepEqual(mergeBadges(['perfect'], ['bogus']), ['perfect']);
+});
+
+test('currentStreak 中斷後顯示 0', () => {
+  const { currentStreak } = require('../js/game-logic.js');
+  assert.equal(currentStreak(null, '2026-10-31'), 0);
+  assert.equal(currentStreak({ count: 5, last: '2026-10-31' }, '2026-10-31'), 5);
+  assert.equal(currentStreak({ count: 5, last: '2026-10-30' }, '2026-10-31'), 5);
+  assert.equal(currentStreak({ count: 5, last: '2026-10-28' }, '2026-10-31'), 0);
 });
