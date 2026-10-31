@@ -3,4 +3,7 @@
 // content/_example.js 是範本，不要列在這裡。
 window.APP_MANIFEST = [
   "content/bio/ch1.js",
+  "content/soc/geo/l1.js",
+  "content/soc/hist/l1.js",
+  "content/soc/civ/l1.js",
 ];
