@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>國一自學站</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="#/">國一自學站</a>
+      <button class="btn" id="btn-progress" type="button">進度</button>
+    </div>
+  </header>
+  <main id="app"></main>
+
+  <!-- 共用模組 -->
+  <script src="js/content-registry.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/quiz-logic.js"></script>
+  <script src="js/router.js"></script>
+  <!-- 畫面 -->
+  <script src="js/views/home.js"></script>
+  <script src="js/views/subject.js"></script>
+  <script src="js/views/progress-dialog.js"></script>
+  <!-- 內容檔：依 manifest 同步載入 -->
+  <script src="content/manifest.js"></script>
+  <script>
+    (window.APP_MANIFEST || []).forEach(function (p) {
+      document.write('<script src="' + p + '"><\/script>');
+    });
+  </script>
+  <!-- 啟動 -->
+  <script src="js/app.js"></script>
+</body>
+</html>
