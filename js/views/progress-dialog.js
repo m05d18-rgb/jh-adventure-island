@@ -53,9 +53,23 @@
       ctx.rerender();
     } }, '清除全部進度');
 
+    var GAME = window.APP_GAME;
+    var player = ctx.store.getPlayer();
+    var earned = GAME.computeBadges(ctx.store.allUnits(), ctx.content.all(), player.streak);
+    var nameInput = h('input', { type: 'text', maxlength: '12', value: player.name, 'aria-label': '名字', style: { font: 'inherit', padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)', color: 'var(--fg)', width: '100%' },
+      onChange: function () { ctx.store.setName(nameInput.value); message.textContent = '名字已更新。'; } });
+    var shelf = h('div', { class: 'badge-shelf' }, GAME.BADGES.map(function (b) {
+      var got = earned.indexOf(b.id) !== -1;
+      return h('div', { class: 'badge-item' + (got ? ' earned' : ''), title: b.desc },
+        h('span', { class: 'bn' }, (got ? '🏅 ' : '🔒 ') + b.name), h('span', { class: 'muted' }, b.desc));
+    }));
+
     dialog = h('dialog', null,
       h('h2', null, '學習進度'),
-      h('p', { class: 'muted small' }, '進度存在這個瀏覽器裡。換裝置時可以先匯出，再到另一台匯入。'),
+      h('label', { class: 'small muted' }, '名字', nameInput),
+      h('p', { class: 'small', style: { margin: '10px 0 0' } }, '🔥 連續 ' + (player.streak ? player.streak.count : 0) + ' 天　🏅 徽章 ' + earned.length + ' / ' + GAME.BADGES.length),
+      shelf,
+      h('p', { class: 'muted small', style: { marginTop: '14px' } }, '進度存在這個瀏覽器裡。換裝置時可以先匯出，再到另一台匯入。'),
       ctx.store.persistent ? null : h('p', { class: 'note' }, '這個瀏覽器無法儲存進度。'),
       h('div', { class: 'btn-row' },
         h('button', { class: 'btn', type: 'button', onClick: function () {

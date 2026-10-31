@@ -13,7 +13,7 @@
 
   function countDone(ctx, units) {
     return units.filter(function (u) {
-      return ctx.store.isUnitDone(u.id, ctx.unitActivityCount(u));
+      return window.APP_GAME.computeStars(ctx.store.get(u.id), u).flag;
     }).length;
   }
 

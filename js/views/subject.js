@@ -14,15 +14,15 @@
     var total = ctx.unitActivityCount(unit);
     var actDone = p.activitiesDone.length;
     var quizText = p.bestScore == null ? '—' : p.bestScore + ' / ' + p.quizTotal;
-    var allDone = ctx.store.isUnitDone(unit.id, total);
+    var st = window.APP_GAME.computeStars(p, unit);
 
     return h('a', { class: 'card unit', href: ctx.hashOf({ view: 'unit', unitId: unit.id }) },
-      h('h3', null, unit.title, allDone ? h('span', { class: 'badge ok', style: { marginLeft: '8px' } }, '✓ 完成') : null),
+      h('h3', null, unit.title, ' ', window.APP_MASCOT.starsEl(st, { small: true })),
       h('div', { class: 'muted small' }, unit.summary),
       h('div', { class: 'status' },
-        statusItem(h, p.conceptsDone ? '✓' : '○', '重點', p.conceptsDone),
-        statusItem(h, actDone >= total && total > 0 ? '✓' : '○', '活動 ' + actDone + '/' + total, actDone >= total && total > 0),
-        statusItem(h, p.bestScore != null ? '✓' : '○', '測驗 ' + quizText, p.bestScore != null)
+        statusItem(h, st.concepts ? '✓' : '○', '重點', st.concepts),
+        statusItem(h, st.activities ? '✓' : '○', '活動 ' + actDone + '/' + total, st.activities),
+        statusItem(h, st.quiz ? '✓' : '○', '測驗 ' + quizText, st.quiz)
       )
     );
   }
@@ -32,10 +32,14 @@
     var s = ctx.subjects[subject];
     root.className = s.cls;
 
+    var allUnits = s.tracks
+      ? Object.keys(s.tracks).reduce(function (acc, t) { return acc.concat(ctx.content.list(subject, t)); }, [])
+      : ctx.content.list(subject, null);
+    var starSum = allUnits.reduce(function (n, u) { return n + window.APP_GAME.computeStars(ctx.store.get(u.id), u).count; }, 0);
     root.appendChild(h('div', { class: 'page-head' },
-      h('a', { class: 'back-link', href: '#/' }, '← 首頁'),
+      h('a', { class: 'back-link', href: '#/' }, '← 冒險地圖'),
       h('h1', null, s.name),
-      h('span', { class: 'muted small' }, s.publisher + '版')
+      h('span', { class: 'muted small' }, s.publisher + '版・★ ' + starSum + ' / ' + allUnits.length * 3)
     ));
 
     if (s.tracks) {
