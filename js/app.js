@@ -7,32 +7,7 @@
     soc: { name: '社會', publisher: '南一', cls: 'subject-soc', tracks: { geo: '地理', hist: '歷史', civ: '公民' } },
   };
 
-  // 建立 DOM 的小工具：h('div', { class: 'x', onClick: fn }, '文字', childEl, [more])
-  function h(tag, attrs) {
-    var el = document.createElement(tag);
-    if (attrs) {
-      Object.keys(attrs).forEach(function (k) {
-        var v = attrs[k];
-        if (v == null || v === false) return;
-        if (k === 'class') el.className = v;
-        else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
-        else if (k === 'dataset') Object.assign(el.dataset, v);
-        else if (k.indexOf('on') === 0 && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
-        else if (k === 'html') el.innerHTML = v;
-        else if (v === true) el.setAttribute(k, '');
-        else el.setAttribute(k, v);
-      });
-    }
-    var children = Array.prototype.slice.call(arguments, 2);
-    (function append(list) {
-      list.forEach(function (c) {
-        if (c == null || c === false) return;
-        if (Array.isArray(c)) return append(c);
-        el.appendChild(c.nodeType ? c : document.createTextNode(String(c)));
-      });
-    })(children);
-    return el;
-  }
+  var h = window.APP_UI.h;
 
   var store = window.APP_PROGRESS.createProgressStore(window.localStorage);
   var root = document.getElementById('app');

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>活動試驗頁</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="subject-bio">
+  <main id="app">
+    <h1>活動試驗頁</h1>
+    <p class="muted small">載入 content/_example.js 的六個活動，各自 mount 一次。完成時該區塊會顯示「完成」。</p>
+    <div id="list"></div>
+  </main>
+  <script src="../js/quiz-logic.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/dnd.js"></script>
+  <script src="../js/activities/match.js"></script>
+  <script src="../js/activities/sort.js"></script>
+  <script src="../js/activities/sequence.js"></script>
+  <script src="../js/activities/fill.js"></script>
+  <script src="../js/activities/label.js"></script>
+  <script src="../js/activities/flashcard.js"></script>
+  <script>
+    window.APP_CONTENT = { register: function (u) { window.__unit = u; } };
+  </script>
+  <script src="../content/_example.js"></script>
+  <script>
+    (function () {
+      var h = window.APP_UI.h;
+      var list = document.getElementById('list');
+      window.__unit.activities.forEach(function (a) {
+        var status = h('span', { class: 'badge', id: 'status-' + a.id }, '未完成');
+        var body = h('div', { class: 'body' });
+        list.appendChild(h('section', { class: 'card activity', style: { marginBottom: '16px' } },
+          h('h3', null, a.type + '：' + a.title, ' ', status), body));
+        window.APP_ACTIVITIES[a.type](body, a.data, {
+          onComplete: function () { status.className = 'badge ok'; status.textContent = '完成'; },
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
