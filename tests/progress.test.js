@@ -15,6 +15,7 @@ const mem = () => {
 test('預設值', () => {
   assert.deepEqual(createProgressStore(mem()).get('u'), {
     conceptsDone: false, activitiesDone: [], bestScore: null, quizTotal: null, attempts: 0, wrongIds: [],
+    rightEverIds: [], resolvedCount: 0,
   });
 });
 
@@ -149,4 +150,66 @@ test('validateImport 拒絕壞資料', () => {
   const s = createProgressStore(mem());
   assert.equal(s.validateImport('nope').ok, false);
   assert.equal(s.validateImport(JSON.stringify({ version: 9, units: {} })).ok, false);
+});
+
+test('新欄位預設與 player 預設', () => {
+  const s = createProgressStore(mem());
+  assert.deepEqual(s.get('u').rightEverIds, []);
+  assert.equal(s.get('u').resolvedCount, 0);
+  assert.deepEqual(s.getPlayer(), { name: '', badgesSeen: [], streak: null, lastUnit: null });
+});
+
+test('recordQuiz 累積 rightEverIds，重測不重複', () => {
+  const s = createProgressStore(mem());
+  s.recordQuiz('u', { score: 1, total: 2, wrongIds: ['q2'], rightIds: ['q1'] });
+  s.recordQuiz('u', { score: 1, total: 2, wrongIds: ['q2'], rightIds: ['q1'] });
+  assert.deepEqual(s.get('u').rightEverIds, ['q1']);
+});
+
+test('resolveWrong 記 resolvedCount 與 rightEverIds', () => {
+  const s = createProgressStore(mem());
+  s.recordQuiz('u', { score: 0, total: 1, wrongIds: ['q1'], rightIds: [] });
+  s.resolveWrong('u', 'q1');
+  s.resolveWrong('u', 'q1');
+  assert.equal(s.get('u').resolvedCount, 1);
+  assert.deepEqual(s.get('u').rightEverIds, ['q1']);
+});
+
+test('舊格式匯入補齊新欄位', () => {
+  const s = createProgressStore(mem());
+  const old = JSON.stringify({ version: 1, units: { u: { conceptsDone: true, activitiesDone: [], bestScore: 3, quizTotal: 3, attempts: 1, wrongIds: [] } } });
+  assert.equal(s.importJSON(old).ok, true);
+  assert.deepEqual(s.get('u').rightEverIds, []);
+  assert.equal(s.get('u').resolvedCount, 0);
+  assert.equal(s.getPlayer().name, '');
+});
+
+test('player 方法與持久化', () => {
+  const st = mem();
+  const s = createProgressStore(st);
+  s.setName('小明');
+  s.setLastUnit('bio-ch1');
+  s.touchStreak('2026-10-31');
+  s.markBadgesSeen(['first-star']);
+  s.markBadgesSeen(['first-star']);
+  const p = createProgressStore(st).getPlayer();
+  assert.equal(p.name, '小明');
+  assert.equal(p.lastUnit, 'bio-ch1');
+  assert.deepEqual(p.streak, { count: 1, last: '2026-10-31' });
+  assert.deepEqual(p.badgesSeen, ['first-star']);
+});
+
+test('allUnits 回副本', () => {
+  const s = createProgressStore(mem());
+  s.markConceptsDone('u');
+  const a = s.allUnits();
+  a.u.conceptsDone = false;
+  assert.equal(s.get('u').conceptsDone, true);
+});
+
+test('clear 連名字一起清', () => {
+  const s = createProgressStore(mem());
+  s.setName('小明');
+  s.clear();
+  assert.equal(s.getPlayer().name, '');
 });
