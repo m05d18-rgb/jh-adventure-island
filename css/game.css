@@ -1,0 +1,129 @@
+/* ===== 遊戲化：地圖、HUD、吉祥物、通知、彩帶、歡迎 ===== */
+:root {
+  --gold: #f2b705;
+  --map-sky-top: #cfe9ff;
+  --map-sky-bottom: #eaf6ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --map-sky-top: #0f2a44; --map-sky-bottom: #1a3a5a; }
+}
+
+/* ---- 地圖頁 ---- */
+body.map-mode main#app { max-width: none; padding: 0; }
+.map-root { position: relative; width: 100%; height: calc(100vh - 61px); min-height: 480px; overflow: hidden; background: linear-gradient(var(--map-sky-top), var(--map-sky-bottom)); }
+.map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.map-canvas.dragging { cursor: grabbing; }
+.map-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.island-label {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer;
+  background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px; font-size: 0.85rem; white-space: nowrap; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;
+}
+.island-label .num { font-weight: 700; color: var(--subject-color, var(--accent)); }
+.island-label.hidden { opacity: 0; pointer-events: none; }
+.island-label.flagged { border-color: var(--gold); }
+.island-label.current { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.hud {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  background: color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter: blur(6px);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow);
+  display: grid; gap: 4px; min-width: 200px; font-size: 0.9rem;
+}
+.hud .name { font-weight: 700; font-size: 1rem; }
+.hud .lv { color: var(--accent); font-weight: 700; margin-left: 6px; }
+.hud .xp-bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.hud .xp-bar > span { display: block; height: 100%; background: var(--accent); }
+.hud .row { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); }
+.hud .row b { color: var(--fg); }
+
+.map-hint {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 5; display: flex; justify-content: center; pointer-events: none;
+}
+.map-hint .bubble-inline {
+  pointer-events: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 8px 14px;
+  box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; max-width: 520px; font-size: 0.95rem;
+}
+.map-hint .owl { width: 40px; height: 40px; flex: none; }
+.map-hint .goto { color: var(--accent); font-weight: 700; white-space: nowrap; }
+
+.map-side {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 340px; z-index: 6;
+  background: var(--card); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px;
+  transform: translateX(100%); transition: transform 0.25s;
+}
+.map-side.open { transform: none; }
+.map-side-toggle {
+  position: absolute; top: 12px; right: 12px; z-index: 7;
+}
+@media (min-width: 900px) {
+  .map-side { transform: none; }
+  .map-side-toggle { display: none; }
+  .map-labels, .map-hint { right: 340px; }
+}
+.map-fallback { padding: 20px 16px; max-width: 860px; margin: 0 auto; }
+.fallback-note { margin-bottom: 14px; }
+
+/* ---- 島嶼清單（科目卡 + 單元列） ---- */
+.island-list h2 { font-size: 1.05rem; margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+.island-list .unit-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 8px; color: inherit; background: var(--bg);
+}
+.island-list .unit-row:hover { border-color: var(--accent); text-decoration: none; }
+.island-list .unit-row .num { font-weight: 700; color: var(--subject-color, var(--accent)); min-width: 2.2em; }
+.island-list .unit-row .title { flex: 1; }
+
+/* ---- 三顆星 ---- */
+.stars { display: inline-flex; align-items: center; gap: 1px; }
+.stars .star { color: var(--border); font-size: 1.1em; line-height: 1; }
+.stars .star.lit { color: var(--gold); text-shadow: 0 0 4px rgba(242, 183, 5, 0.5); }
+.stars.small .star { font-size: 0.95em; }
+.stars .flag { margin-left: 4px; font-size: 0.95em; }
+
+/* ---- 吉祥物與泡泡 ---- */
+.mascot-dock { position: fixed; right: 12px; bottom: 12px; z-index: 40; display: flex; align-items: flex-end; gap: 8px; pointer-events: none; }
+.mascot-dock .owl-btn { pointer-events: auto; background: none; border: none; padding: 0; cursor: pointer; width: 76px; height: 76px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+.mascot-dock .owl { width: 100%; height: 100%; animation: owl-bob 3s ease-in-out infinite; }
+.mascot-dock .bubble {
+  pointer-events: auto; max-width: min(300px, 70vw); background: var(--card); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 14px; box-shadow: var(--shadow); font-size: 0.95rem; position: relative; margin-bottom: 20px;
+  opacity: 0; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s;
+}
+.mascot-dock .bubble.show { opacity: 1; transform: none; }
+.mascot-dock .bubble::after { content: ''; position: absolute; right: -8px; bottom: 14px; border: 8px solid transparent; border-left-color: var(--card); }
+.mascot-dock .bubble.pop { animation: bubble-pop 0.3s; }
+@keyframes owl-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes bubble-pop { 0% { transform: scale(0.96); } 60% { transform: scale(1.02); } 100% { transform: none; } }
+body.has-mascot main#app { padding-bottom: 110px; }
+
+/* ---- 通知卡 ---- */
+.notify-stack { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 50; display: grid; gap: 8px; width: min(360px, calc(100% - 32px)); pointer-events: none; }
+.notify {
+  display: flex; align-items: center; gap: 12px; background: var(--card); color: var(--fg); border: 1px solid var(--gold);
+  border-radius: 12px; padding: 10px 14px; box-shadow: var(--shadow); opacity: 0; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s;
+}
+.notify.show { opacity: 1; transform: none; }
+.notify-icon { font-size: 1.5rem; }
+.notify-title { font-weight: 700; }
+.notify-desc { font-size: 0.85rem; color: var(--muted); }
+
+/* ---- 彩帶 ---- */
+.confetti-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+
+/* ---- 歡迎 ---- */
+.welcome { text-align: center; }
+.welcome .owl { width: 120px; height: 120px; margin: 0 auto 6px; display: block; }
+.welcome input { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--fg); margin: 12px 0; text-align: center; }
+.welcome input:focus { outline: none; border-color: var(--accent); }
+
+/* ---- 單元頁星星與金旗提示 ---- */
+.unit-stars { margin-left: 6px; vertical-align: middle; }
+.flag-banner { background: color-mix(in srgb, var(--gold) 18%, var(--card)); border: 1px solid var(--gold); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ---- 徽章櫃 ---- */
+.badge-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 10px; }
+.badge-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: 0.85rem; opacity: 0.45; }
+.badge-item.earned { opacity: 1; border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--card)); }
+.badge-item .bn { font-weight: 700; display: block; }

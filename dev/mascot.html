@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>吉祥物試驗頁</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/game.css">
+</head>
+<body class="subject-bio">
+  <main id="app">
+    <h1>咕博士試驗頁</h1>
+    <div id="moods" style="display:flex;gap:16px;flex-wrap:wrap"></div>
+    <div class="btn-row">
+      <button class="btn" id="b-say">換一句話</button>
+      <button class="btn" id="b-notify">通知</button>
+      <button class="btn" id="b-confetti">彩帶</button>
+    </div>
+    <p id="stars"></p>
+  </main>
+  <script src="../js/ui.js"></script>
+  <script src="../js/mascot.js"></script>
+  <script>
+    var M = window.APP_MASCOT, h = window.APP_UI.h;
+    ['happy', 'cheer', 'think', 'oops', 'sleep'].forEach(function (m) {
+      var d = h('div', { style: { width: '110px', textAlign: 'center' } }); d.innerHTML = M.svg(m) + '<div class="small muted">' + m + '</div>';
+      document.getElementById('moods').appendChild(d);
+    });
+    var bubble = M.mountBubble(document.body, { mood: 'happy', text: M.pick('welcome', { name: '小明' }) });
+    var moods = ['happy', 'cheer', 'think', 'oops'], i = 0;
+    document.getElementById('b-say').onclick = function () { i++; bubble.say(M.pick(['concepts', 'activityDone', 'quizWrong', 'quizPass'][i % 4], { name: '小明' }), moods[i % 4]); };
+    document.getElementById('b-notify').onclick = function () { M.notify({ icon: '★', title: '獲得星星：重點', desc: '第1章 生命的世界' }); M.notify({ icon: '🏅', title: '徽章：第一顆星' }); };
+    document.getElementById('b-confetti').onclick = function () { M.confetti(2000); };
+    document.getElementById('stars').appendChild(M.starsEl({ concepts: true, activities: true, quiz: false, count: 2, flag: false }));
+    document.getElementById('stars').appendChild(M.starsEl({ concepts: true, activities: true, quiz: true, count: 3, flag: true }));
+  </script>
+</body>
+</html>
