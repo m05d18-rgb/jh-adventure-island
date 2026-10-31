@@ -1,0 +1,9 @@
+{
+  "name": "jh-learn",
+  "private": true,
+  "description": "國一生物與社會互動自學網站（純靜態）",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "validate": "node tools/validate-content.js"
+  }
+}
