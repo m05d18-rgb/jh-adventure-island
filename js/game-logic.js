@@ -105,6 +105,51 @@
     return dayDiff(streak.last, today) > 1 ? 0 : streak.count;
   }
 
+  // ---- 闖關：依序解鎖 ----
+  // 每條路線（bio / geo / hist / civ）第 1 關永遠開；通過上一關的 BOSS（測驗 ≥ 80%）才解鎖下一關。
+  function chainOf(u) { return u.subject === 'bio' ? 'bio' : u.track; }
+
+  function unlockedMap(units, statesById, unlockAll) {
+    statesById = statesById || {};
+    var chains = {};
+    (units || []).forEach(function (u) {
+      var c = chainOf(u);
+      (chains[c] = chains[c] || []).push(u);
+    });
+    var result = {};
+    Object.keys(chains).forEach(function (c) {
+      var list = chains[c].slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      var open = true;
+      list.forEach(function (u) {
+        result[u.id] = !!unlockAll || open;
+        var s = statesById[u.id];
+        open = !!(s && quizPassed(s));
+      });
+    });
+    return result;
+  }
+
+  // ---- BOSS 戰 ----
+  function newFight(total) {
+    var hearts = Math.floor(total * (1 - PASS_RATIO) + 1e-9) + 1;
+    return { hp: total, maxHp: total, hearts: hearts, maxHearts: hearts, combo: 0, maxCombo: 0, failed: false };
+  }
+
+  function applyAnswer(fight, correct) {
+    if (fight.failed) return fight;
+    var f = Object.assign({}, fight);
+    if (correct) {
+      f.hp = Math.max(0, f.hp - 1);
+      f.combo += 1;
+      f.maxCombo = Math.max(f.maxCombo, f.combo);
+    } else {
+      f.hearts = Math.max(0, f.hearts - 1);
+      f.combo = 0;
+      if (f.hearts === 0) f.failed = true;
+    }
+    return f;
+  }
+
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   function todayStr(date) {
@@ -139,6 +184,9 @@
     computeBadges: computeBadges,
     mergeBadges: mergeBadges,
     currentStreak: currentStreak,
+    unlockedMap: unlockedMap,
+    newFight: newFight,
+    applyAnswer: applyAnswer,
     touchStreak: touchStreak,
     dayDiff: dayDiff,
     todayStr: todayStr,

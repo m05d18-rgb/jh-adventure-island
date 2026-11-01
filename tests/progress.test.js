@@ -156,7 +156,7 @@ test('新欄位預設與 player 預設', () => {
   const s = createProgressStore(mem());
   assert.deepEqual(s.get('u').rightEverIds, []);
   assert.equal(s.get('u').resolvedCount, 0);
-  assert.deepEqual(s.getPlayer(), { name: '', badgesSeen: [], streak: null, lastUnit: null });
+  assert.deepEqual(s.getPlayer(), { name: '', badgesSeen: [], streak: null, lastUnit: null, unlockAll: false });
 });
 
 test('recordQuiz 累積 rightEverIds，重測不重複', () => {
@@ -223,4 +223,15 @@ test('舊格式匯入後等級與徽章可回填', () => {
   assert.equal(GAME.computeStars(s.get('bio-ch1'), unit).flag, true);
   assert.equal(GAME.totalXp(s.allUnits()), 20 + 30 + 30); // rightEverIds 舊檔沒有，不計
   assert.deepEqual(GAME.computeBadges(s.allUnits(), [unit], s.getPlayer().streak), ['first-star', 'first-flag', 'perfect']);
+});
+
+test('player.unlockAll 預設 false、可設定並持久化、舊檔匯入為 false', () => {
+  const st = mem();
+  const s = createProgressStore(st);
+  assert.equal(s.getPlayer().unlockAll, false);
+  s.setUnlockAll(true);
+  assert.equal(createProgressStore(st).getPlayer().unlockAll, true);
+  const old = JSON.stringify({ version: 1, units: {}, player: { name: 'x' } });
+  assert.equal(s.importJSON(old).ok, true);
+  assert.equal(s.getPlayer().unlockAll, false);
 });

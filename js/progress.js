@@ -26,7 +26,7 @@
   }
 
   function defaultPlayer() {
-    return { name: '', badgesSeen: [], streak: null, lastUnit: null };
+    return { name: '', badgesSeen: [], streak: null, lastUnit: null, unlockAll: false };
   }
 
   function emptyState() {
@@ -79,6 +79,7 @@
     p.streak = src.streak && typeof src.streak.count === 'number' && typeof src.streak.last === 'string'
       ? { count: src.streak.count, last: src.streak.last } : null;
     p.lastUnit = typeof src.lastUnit === 'string' ? src.lastUnit : null;
+    p.unlockAll = src.unlockAll === true;
     return { ok: true, state: { version: VERSION, units: units, player: p } };
   }
 
@@ -183,6 +184,10 @@
         state.player.streak = GAME.touchStreak(state.player.streak, today);
         save();
         return clone(state.player.streak);
+      },
+      setUnlockAll: function (on) {
+        state.player.unlockAll = !!on;
+        save();
       },
       markBadgesSeen: function (ids) {
         state.player.badgesSeen = unique(state.player.badgesSeen.concat(ids || []));
