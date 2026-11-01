@@ -7,7 +7,7 @@
     root.APP_LAYOUT = factory(root.APP_GAME);
   }
 })(typeof self !== 'undefined' ? self : this, function (GAME) {
-  var DEFAULTS = { perRow: 6, gap: 8, rowGap: 9, chainGap: 14, bioX: -40, socX: 8, bioZ: -7, socZ: -14 };
+  var DEFAULTS = { perRow: 6, gap: 8, rowGap: 9, chainGap: 14, bioX: -40, socX: 16, bioZ: -7, socZ: -14 };
   var CHAIN_ORDER = ['bio', 'geo', 'hist', 'civ'];
 
   function chainOf(u) {

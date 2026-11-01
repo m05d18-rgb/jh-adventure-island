@@ -10,6 +10,7 @@
 1. 複製 `content/_example.js`，改成新的檔名與內容。
 2. 在 `content/manifest.js` 加一行該檔案的路徑。
 3. 執行 `npm run validate`，看到「全部合法」才算完成。
+   （寫到一半想先檢查單一檔案：`node tools/validate-file.js content/bio/ch2.js`）
 
 每個檔案第一行保留這個註解：
 
@@ -25,7 +26,8 @@
 | `subject` | `"bio"` 或 `"soc"` | 生物或社會 |
 | `track` | `null` 或 `"geo"`/`"hist"`/`"civ"` | 生物填 `null`；社會填地理/歷史/公民 |
 | `order` | 數字 | 在清單中的順序，小的在前 |
-| `title` | 字串 | 單元名稱，例如「第1章 生命的世界」 |
+| `title` | 字串 | 單元名稱，例如「第1章 生命的特性」「單元2 世界中的臺灣」 |
+| `short` | 字串（選填） | 地圖標籤上的短編號，例如 `"1"`、`"緒"`、`"尺"`；沒填就取 title 裡的第一個數字 |
 | `publisher` | 字串 | 「康軒」或「南一」 |
 | `summary` | 字串 | 一句話說明這單元在學什麼 |
 | `concepts` | 陣列 | 概念卡，見下 |
