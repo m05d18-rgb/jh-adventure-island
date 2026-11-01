@@ -130,3 +130,35 @@ body.has-mascot main#app { padding-bottom: 110px; }
 .badge-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: 0.85rem; opacity: 0.45; }
 .badge-item.earned { opacity: 1; border-color: var(--gold); background: var(--card); background: color-mix(in srgb, var(--gold) 12%, var(--card)); }
 .badge-item .bn { font-weight: 700; display: block; }
+
+/* ===== 闖關：BOSS 戰、鎖定、開關 ===== */
+.boss-panel { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.boss-figure { width: 96px; flex: none; }
+.boss-figure.big { width: 160px; margin: 0 auto 8px; }
+.boss-figure svg { width: 100%; height: auto; display: block; }
+.boss-stats { flex: 1; min-width: 0; }
+.boss-name { font-weight: 700; margin-bottom: 4px; }
+.hp-bar { height: 12px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.hp-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #43aa8b, #90be6d); transition: width 0.35s; }
+.hp-bar > span.low { background: linear-gradient(90deg, #f94144, #f3722c); }
+.boss-row { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.hearts { font-size: 1.1rem; letter-spacing: 2px; }
+.hearts.lose { animation: shake 0.4s; }
+.combo { font-weight: 700; color: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.combo.on { opacity: 1; animation: bubble-pop 0.3s; }
+.boss-panel.shake .boss-figure { animation: boss-hit 0.35s; }
+@keyframes boss-hit { 0% { transform: translateX(0) rotate(0); } 30% { transform: translateX(-8px) rotate(-6deg); } 60% { transform: translateX(6px) rotate(4deg); } 100% { transform: none; } }
+.boss-intro, .boss-result { text-align: center; padding: 26px 20px; }
+.boss-result.win { border-color: var(--gold); }
+.boss-result.fail { border-color: var(--bad); }
+.boss-ko { filter: grayscale(0.6); }
+.boss-ko, .boss-idle { animation: owl-bob 2.4s ease-in-out infinite; }
+.unlock-note { margin: 10px auto; padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 18%, var(--card)); border: 1px solid var(--gold); display: inline-block; font-weight: 700; }
+.locked-screen { text-align: center; padding: 40px 20px; }
+.lock-icon { font-size: 3rem; }
+.island-label.locked { opacity: 0.75; border-style: dashed; }
+.island-label.wiggle { animation: shake 0.4s; }
+.island-list .unit-row.locked { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+.toggles { margin-top: 12px; display: grid; gap: 6px; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; }

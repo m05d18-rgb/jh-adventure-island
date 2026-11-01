@@ -40,6 +40,7 @@
   window.APP_VIEWS.islandList = function (root, ctx, opts) {
     var h = ctx.h;
     var wrap = h('div', { class: 'island-list' });
+    var unlockedAll = GAME.unlockedMap(ctx.content.all(), ctx.store.allUnits(), ctx.store.getPlayer().unlockAll);
     Object.keys(ctx.subjects).forEach(function (key) {
       var s = ctx.subjects[key];
       var tracks = s.tracks ? Object.keys(s.tracks) : [null];
@@ -51,10 +52,13 @@
           h('span', { class: 'muted small' }, '★ ' + starSum + ' / ' + units.length * 3)));
         units.forEach(function (u) {
           var st = stateOf(ctx, u);
-          wrap.appendChild(h('a', { class: 'unit-row ' + s.cls, href: ctx.hashOf({ view: 'unit', unitId: u.id }) },
-            h('span', { class: 'num' }, unitNumber(u)),
-            h('span', { class: 'title' }, u.title.replace(/^第\d+[章課]\s*/, '')),
-            M.starsEl(st, { small: true })));
+          var locked = !unlockedAll[u.id];
+          var title = u.title.replace(/^(第\d+[章課]|單元\d+)\s*/, '');
+          wrap.appendChild(locked
+            ? h('div', { class: 'unit-row locked ' + s.cls, title: '尚未解鎖' },
+              h('span', { class: 'num' }, '🔒'), h('span', { class: 'title' }, title), h('span', { class: 'muted small' }, '未解鎖'))
+            : h('a', { class: 'unit-row ' + s.cls, href: ctx.hashOf({ view: 'unit', unitId: u.id }) },
+              h('span', { class: 'num' }, unitNumber(u)), h('span', { class: 'title' }, title), M.starsEl(st, { small: true })));
         });
       });
     });
@@ -115,19 +119,21 @@
     var lay = LAYOUT.layoutIslands(units);
     var labels = MAP.createLabels(mapRoot);
     var groups = {}, hitTargets = [];
+    var unlocked = GAME.unlockedMap(units, states, player.unlockAll);
 
     lay.islands.forEach(function (isl, i) {
       var st = GAME.computeStars(states[isl.id] || ctx.store.get(isl.id), isl.unit);
-      var state = st.flag ? 'flag' : (st.count > 0 ? 'progress' : 'new');
+      var isLocked = !unlocked[isl.id];
+      var state = isLocked ? 'locked' : st.flag ? 'flag' : (st.count > 0 ? 'progress' : 'new');
       var g = MAP.buildIsland({ id: isl.id, x: isl.x, z: isl.z, seed: i + 1, state: state });
       S.add(g);
       groups[isl.id] = g;
       hitTargets.push(g.userData.body, g.userData.top);
       var s = ctx.subjects[isl.unit.subject];
-      var el = h('div', { class: s.cls + (st.flag ? ' flagged' : ''), dataset: { id: isl.id } },
-        h('span', { class: 'num' }, unitNumber(isl.unit)),
-        h('span', { class: 'title' }, isl.unit.title.replace(/^第\d+[章課]\s*/, '')),
-        M.starsEl(st, { small: true }));
+      var el = h('div', { class: s.cls + (st.flag ? ' flagged' : '') + (isLocked ? ' locked' : ''), dataset: { id: isl.id } },
+        h('span', { class: 'num' }, isLocked ? '🔒' : unitNumber(isl.unit)),
+        h('span', { class: 'title' }, isl.unit.title.replace(/^(第\d+[章課]|單元\d+)\s*/, '')),
+        isLocked ? null : M.starsEl(st, { small: true }));
       el.addEventListener('click', function () { goTo(isl); });
       labels.add(isl.id, el, new window.THREE.Vector3(isl.x, 2.8, isl.z));
       labels.setImportant(isl.id, st.flag);
@@ -187,6 +193,17 @@
     var flying = false, disposed = false;
     function goTo(isl) {
       if (flying) return;
+      if (!unlocked[isl.id]) {
+        // 鎖住的關：咕博士提示，不進入
+        var list = lay.islands.filter(function (x) { return x.chain === isl.chain; });
+        var k = list.findIndex(function (x) { return x.id === isl.id; });
+        var prev = k > 0 ? list[k - 1].unit.title : '';
+        hintText.textContent = M.pick('locked', { name: player.name, unit: prev });
+        var lbl = mapRoot.querySelector('.island-label[data-id="' + isl.id + '"]');
+        if (lbl) { lbl.classList.remove('wiggle'); void lbl.offsetWidth; lbl.classList.add('wiggle'); }
+        window.APP_SOUND.play('wrong');
+        return;
+      }
       flying = true;
       S.flyTo(isl.x, isl.z, 28, 600).then(function () {
         if (disposed) return; // 飛近途中使用者已經離開首頁
@@ -202,10 +219,11 @@
 
     // HUD、提示、清單面板
     mapRoot.appendChild(buildHud(ctx));
+    var hintText = h('span', null, target && !allFlagged ? M.pick('mapHint', { name: player.name, unit: target.unit.title }) : player.name + '，所有島都升旗了，太厲害！');
     var hint = h('div', { class: 'map-hint' },
       h('div', { class: 'bubble-inline' },
         h('span', { html: M.svg('happy') }),
-        h('span', null, target && !allFlagged ? M.pick('mapHint', { name: player.name, unit: target.unit.title }) : player.name + '，所有島都升旗了，太厲害！'),
+        hintText,
         target && !allFlagged ? h('button', { class: 'btn primary', type: 'button', onClick: function () { goTo(target); } }, '出發 →') : null));
     mapRoot.appendChild(hint);
 

@@ -110,9 +110,16 @@
     return g;
   };
 
+  // state: 'locked' | 'new' | 'progress' | 'flag'
   window.APP_MAP.setIslandState = function (g, state) {
     var top = g.userData.top;
-    top.material.color.setHex(state === 'new' ? COLORS.grassNew : COLORS.grass);
+    var locked = state === 'locked';
+    top.material.color.setHex(locked ? 0xaab2b8 : state === 'new' ? COLORS.grassNew : COLORS.grass);
+    g.userData.body.material.color.setHex(locked ? 0x8f949a : COLORS.cliff);
+    g.children.forEach(function (c) {
+      if (c === g.userData.flag || c === top || c === g.userData.body) return;
+      c.traverse(function (m) { if (m.material) m.material.transparent = locked, m.material.opacity = locked ? 0.35 : 1; });
+    });
     g.userData.flag.visible = state === 'flag';
     g.userData.state = state;
   };

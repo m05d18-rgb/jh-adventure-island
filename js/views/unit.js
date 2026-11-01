@@ -7,9 +7,9 @@
   var M = window.APP_MASCOT;
 
   var TABS = [
-    { key: 'concepts', label: '重點整理' },
-    { key: 'activities', label: '互動活動' },
-    { key: 'quiz', label: '測驗' },
+    { key: 'concepts', label: '重點' },
+    { key: 'activities', label: '訓練場' },
+    { key: 'quiz', label: 'BOSS 戰' },
     { key: 'wrong', label: '錯題本' },
   ];
   var STAR_NAMES = { concepts: '讀完重點', activities: '活動全部完成', quiz: '測驗過關' };
@@ -49,7 +49,7 @@
     // 通知與彩帶用一般 setTimeout：切換分頁不該取消獎勵
     ['concepts', 'activities', 'quiz'].forEach(function (k) {
       if (!before.stars[k] && after.stars[k]) {
-        setTimeout(function () { M.notify({ icon: '★', title: '獲得星星：' + STAR_NAMES[k], desc: unit.title }); }, delay);
+        setTimeout(function () { M.notify({ icon: '★', title: '獲得星星：' + STAR_NAMES[k], desc: unit.title }); window.APP_SOUND.play('star'); }, delay);
         delay += 500;
       }
     });
@@ -184,20 +184,53 @@
     return -1;
   }
 
-  // ---------- 測驗 ----------
+  // ---------- BOSS 戰（測驗） ----------
+  function nextUnitOf(ctx, unit) {
+    var list = ctx.content.list(unit.subject, unit.track);
+    var i = list.findIndex(function (u) { return u.id === unit.id; });
+    return i >= 0 && i + 1 < list.length ? list[i + 1] : null;
+  }
+
   function renderQuiz(root, ctx, unit) {
     var h = ctx.h;
+    var S = window.APP_SOUND;
+    var B = window.APP_BOSSES;
+    var chain = B.chainOf(unit);
+    var boss = B.info(chain);
     var p = ctx.store.get(unit.id);
     var total = unit.quiz.length;
     var passNeed = Math.ceil(total * GAME.PASS_RATIO);
+    var heartsMax = GAME.newFight(total).maxHearts;
+
+    function hearts(f) {
+      var s = '';
+      for (var i = 0; i < f.maxHearts; i++) s += i < f.hearts ? '❤️' : '🖤';
+      return s;
+    }
+
+    function bossPanel(f, mood) {
+      var pct = Math.round((f.hp / f.maxHp) * 100);
+      var panel = h('div', { class: 'boss-panel' },
+        h('div', { class: 'boss-figure', html: B.svg(chain, mood || 'idle') }),
+        h('div', { class: 'boss-stats' },
+          h('div', { class: 'boss-name' }, boss.name, h('span', { class: 'muted small' }, '　HP ' + f.hp + ' / ' + f.maxHp)),
+          h('div', { class: 'hp-bar', role: 'progressbar', 'aria-valuenow': f.hp, 'aria-valuemax': f.maxHp },
+            h('span', { style: { width: pct + '%' }, class: pct <= 30 ? 'low' : '' })),
+          h('div', { class: 'boss-row' },
+            h('span', { class: 'hearts', 'aria-label': '愛心 ' + f.hearts }, hearts(f)),
+            h('span', { class: 'combo' + (f.combo >= 2 ? ' on' : '') }, f.combo >= 2 ? '連擊 ×' + f.combo : ''))));
+      return panel;
+    }
 
     function intro() {
       root.innerHTML = '';
-      root.appendChild(h('div', { class: 'card', style: { textAlign: 'center', padding: '30px 20px' } },
-        h('h2', null, '單元測驗'),
-        h('p', { class: 'muted' }, '共 ' + total + ' 題單選題，答對 ' + passNeed + ' 題以上就拿到測驗星星。答完每一題都會立刻告訴你為什麼。'),
-        p.bestScore != null ? h('p', null, '目前最高分：', h('strong', null, p.bestScore + ' / ' + p.quizTotal), '（做過 ' + p.attempts + ' 次）') : null,
-        h('button', { class: 'btn primary', type: 'button', onClick: start }, p.attempts ? '再測一次' : '開始測驗')
+      root.appendChild(h('div', { class: 'card boss-intro' },
+        h('div', { class: 'boss-figure big', html: B.svg(chain, 'idle') }),
+        h('h2', null, 'BOSS 戰：' + boss.name),
+        h('p', { class: 'muted' }, '牠有 ' + total + ' 格血，答對一題扣一格。你有 ' + heartsMax + ' 顆愛心，答錯掉一顆，掉光就要重來。打倒牠就拿到測驗星星（答對 ' + passNeed + ' 題以上）。'),
+        p.bestScore != null ? h('p', null, '目前最高：', h('strong', null, p.bestScore + ' / ' + p.quizTotal), '（挑戰過 ' + p.attempts + ' 次）') : null,
+        h('div', { class: 'btn-row', style: { justifyContent: 'center' } },
+          h('button', { class: 'btn primary', type: 'button', onClick: start }, p.attempts ? '再次挑戰！' : '開始挑戰！'))
       ));
     }
 
@@ -205,37 +238,52 @@
       var order = window.APP_QUIZ.shuffle(unit.quiz);
       var answers = {};
       var idx = 0;
+      var fight = GAME.newFight(total);
       var startedAt = Date.now();
+      var unlockedBefore = GAME.unlockedMap(ctx.content.all(), ctx.store.allUnits(), ctx.store.getPlayer().unlockAll);
       say('quizIntro', 'think');
 
-      function showQuestion() {
+      function showQuestion(mood) {
         root.innerHTML = '';
         if (idx > 0) window.scrollTo(0, Math.max(0, root.getBoundingClientRect().top + window.scrollY - 70));
         var q = order[idx];
+        var panel = bossPanel(fight, mood);
         var explain = h('div');
         var next = h('button', { class: 'btn primary', type: 'button', disabled: true, onClick: function () {
           idx += 1;
           if (idx < order.length) showQuestion(); else finish();
-        } }, idx === order.length - 1 ? '看結果 →' : '下一題 →');
+        } }, idx === order.length - 1 ? '最後一擊 →' : '下一題 →');
 
         var optionEls = q.options.map(function (opt, i) {
           return h('button', { class: 'option', type: 'button', onClick: function () {
             answers[q.id] = i;
+            var ok = i === q.answer;
+            fight = GAME.applyAnswer(fight, ok);
             optionEls.forEach(function (b, j) {
               b.disabled = true;
               if (j === q.answer) b.classList.add('correct');
               else if (j === i) b.classList.add('wrong');
             });
-            var ok = i === q.answer;
+            var fresh = bossPanel(fight, ok ? 'hit' : 'idle');
+            panel.replaceWith(fresh);
+            panel = fresh;
+            if (ok) { S.play('correct'); panel.classList.add('shake'); }
+            else { S.play('wrong'); panel.querySelector('.hearts').classList.add('lose'); }
             explain.appendChild(h('div', { class: 'explain ' + (ok ? 'ok' : 'bad') },
-              h('strong', null, ok ? '答對了！' : '答錯了，正確答案是 ' + optionLabel(q.answer) + '。'),
+              h('strong', null, ok ? '命中！BOSS 掉了一格血。' : '被打到了！正確答案是 ' + optionLabel(q.answer) + '。'),
               h('p', { style: { margin: '6px 0 0' } }, q.explanation)));
             if (!ok) say('quizWrong', 'oops');
+            if (fight.failed) {
+              next.textContent = '看結果 →';
+              next.onclick = null;
+              next.addEventListener('click', fail);
+            }
             next.disabled = false;
             next.focus();
           } }, h('span', { class: 'mark' }, optionLabel(i)), h('span', null, opt));
         });
 
+        root.appendChild(panel);
         root.appendChild(h('div', { class: 'card' },
           h('div', { class: 'quiz-meta' }, h('span', null, '第 ' + (idx + 1) + ' / ' + total + ' 題'), h('span', null, '觀念：' + q.concept)),
           h('div', { class: 'quiz-q' }, q.question),
@@ -245,32 +293,65 @@
         ));
       }
 
-      function finish() {
-        var r = window.APP_QUIZ.scoreQuiz(unit.quiz, answers);
+      // 只記錄實際作答的題目：沒看到的題不進錯題本
+      function recordAnswered() {
+        var right = [], wrong = [];
+        unit.quiz.forEach(function (q) {
+          if (!Object.prototype.hasOwnProperty.call(answers, q.id)) return;
+          (answers[q.id] === q.answer ? right : wrong).push(q.id);
+        });
         var before = snapshot(ctx, unit);
-        ctx.store.recordQuiz(unit.id, r);
-        var after = checkRewards(ctx, unit, before);
-        var passed = r.score / r.total >= GAME.PASS_RATIO;
-        if (!after.stars.flag) say(passed ? 'quizPass' : 'quizFail', passed ? 'cheer' : 'think');
-        var secs = Math.round((Date.now() - startedAt) / 1000);
-        var wrongQs = unit.quiz.filter(function (q) { return r.wrongIds.indexOf(q.id) !== -1; });
+        ctx.store.recordQuiz(unit.id, { score: right.length, total: total, wrongIds: wrong, rightIds: right });
+        return { before: before, after: checkRewards(ctx, unit, before), right: right, wrong: wrong };
+      }
+
+      function fail() {
+        var r = recordAnswered();
+        S.play('fail');
+        say('quizFail', 'think');
         root.innerHTML = '';
-        if (after.stars.flag) showFlagBanner(ctx, unit);
-        root.appendChild(h('div', { class: 'card', style: { textAlign: 'center', padding: '30px 20px' } },
-          h('div', { class: 'score-big' }, r.score + ' / ' + r.total),
-          h('p', { class: 'muted' }, '用時 ' + Math.floor(secs / 60) + ' 分 ' + (secs % 60) + ' 秒' + (passed ? '　★ 測驗過關' : '　還差 ' + (passNeed - r.score) + ' 題就過關')),
-          r.score === r.total
-            ? h('p', null, '全部答對，太棒了！')
-            : h('div', { style: { textAlign: 'left' } },
-              h('p', null, '答錯的題目已放進錯題本：'),
-              h('ul', { class: 'wrong-list' }, wrongQs.map(function (q) {
-                return h('li', null, q.question, h('span', { class: 'muted small' }, '　正解：' + q.options[q.answer]));
-              }))),
+        root.appendChild(h('div', { class: 'card boss-result fail' },
+          h('div', { class: 'boss-figure big', html: B.svg(chain, 'win') }),
+          h('h2', null, '挑戰失敗⋯'),
+          h('p', null, boss.name + ' 還剩 ', h('strong', null, fight.hp + ' 格血'), '。你答對了 ' + r.right.length + ' 題，答錯 ' + r.wrong.length + ' 題。'),
+          h('p', { class: 'muted small' }, '答錯的題目已放進錯題本。先回去看重點或把錯題練會，再來挑戰一次！'),
           h('div', { class: 'btn-row', style: { justifyContent: 'center' } },
-            h('button', { class: 'btn', type: 'button', onClick: start }, '再測一次'),
-            r.score < r.total ? h('button', { class: 'btn primary', type: 'button', onClick: function () {
-              ctx.navigate({ view: 'unit', unitId: unit.id, tab: 'wrong' });
-            } }, '去看錯題本 →') : null)
+            h('button', { class: 'btn primary', type: 'button', onClick: start }, '再挑戰一次'),
+            h('button', { class: 'btn', type: 'button', onClick: function () { ctx.navigate({ view: 'unit', unitId: unit.id, tab: 'concepts' }); } }, '回去看重點'),
+            r.wrong.length ? h('button', { class: 'btn', type: 'button', onClick: function () { ctx.navigate({ view: 'unit', unitId: unit.id, tab: 'wrong' }); } }, '去練錯題') : null)
+        ));
+      }
+
+      function finish() {
+        var r = recordAnswered();
+        var secs = Math.round((Date.now() - startedAt) / 1000);
+        var passed = r.right.length / total >= GAME.PASS_RATIO;
+        var unlockedAfter = GAME.unlockedMap(ctx.content.all(), ctx.store.allUnits(), ctx.store.getPlayer().unlockAll);
+        var nxt = nextUnitOf(ctx, unit);
+        var newlyUnlocked = nxt && unlockedAfter[nxt.id] && !unlockedBefore[nxt.id];
+        S.play(passed ? 'win' : 'fail');
+        if (newlyUnlocked) setTimeout(function () { S.play('unlock'); }, 900);
+        if (!r.after.stars.flag) say(passed ? 'quizPass' : 'quizFail', passed ? 'cheer' : 'think');
+        root.innerHTML = '';
+        if (r.after.stars.flag) showFlagBanner(ctx, unit);
+        root.appendChild(h('div', { class: 'card boss-result ' + (passed ? 'win' : 'fail') },
+          h('div', { class: 'boss-figure big', html: B.svg(chain, passed ? 'ko' : 'win') }),
+          h('h2', null, passed ? 'BOSS 擊倒！過關！' : '差一點就過關'),
+          h('div', { class: 'score-big' }, r.right.length + ' / ' + total),
+          h('p', { class: 'muted' }, '用時 ' + Math.floor(secs / 60) + ' 分 ' + (secs % 60) + ' 秒　最高連擊 ×' + fight.maxCombo),
+          newlyUnlocked ? h('div', { class: 'unlock-note' }, '🔓 下一關「' + nxt.title + '」已解鎖！') : null,
+          r.wrong.length
+            ? h('div', { style: { textAlign: 'left' } },
+              h('p', null, '答錯的題目已放進錯題本：'),
+              h('ul', { class: 'wrong-list' }, unit.quiz.filter(function (q) { return r.wrong.indexOf(q.id) !== -1; }).map(function (q) {
+                return h('li', null, q.question, h('span', { class: 'muted small' }, '　正解：' + q.options[q.answer]));
+              })))
+            : h('p', null, '全部答對，完美通關！'),
+          h('div', { class: 'btn-row', style: { justifyContent: 'center' } },
+            newlyUnlocked ? h('button', { class: 'btn primary', type: 'button', onClick: function () { ctx.navigate({ view: 'unit', unitId: nxt.id }); } }, '前往下一關 →') : null,
+            h('button', { class: 'btn', type: 'button', onClick: start }, '再挑戰一次'),
+            r.wrong.length ? h('button', { class: 'btn', type: 'button', onClick: function () { ctx.navigate({ view: 'unit', unitId: unit.id, tab: 'wrong' }); } }, '去練錯題') : null,
+            h('a', { class: 'btn', href: '#/' }, '回地圖'))
         ));
       }
 
@@ -342,12 +423,31 @@
     current = null;
   };
 
+  // 直接輸入網址進到鎖住的關：顯示鎖定畫面
+  function renderLocked(root, ctx, unit) {
+    var h = ctx.h;
+    var list = ctx.content.list(unit.subject, unit.track);
+    var i = list.findIndex(function (u) { return u.id === unit.id; });
+    var prev = i > 0 ? list[i - 1] : null;
+    root.appendChild(h('div', { class: 'card locked-screen' },
+      h('div', { class: 'lock-icon', 'aria-hidden': 'true' }, '🔒'),
+      h('h1', null, unit.title),
+      h('p', null, '這一關還沒解鎖。', prev ? '先打倒「' + prev.title + '」的 BOSS，這座島就會開！' : ''),
+      h('div', { class: 'btn-row', style: { justifyContent: 'center' } },
+        prev ? h('a', { class: 'btn primary', href: ctx.hashOf({ view: 'unit', unitId: prev.id, tab: 'quiz' }) }, '前往上一關的 BOSS →') : null,
+        h('a', { class: 'btn', href: '#/' }, '回地圖'))
+    ));
+  }
+
   window.APP_VIEWS.unit = function (root, ctx, unit, tab) {
     var h = ctx.h;
     var s = ctx.subjects[unit.subject];
     unmountAll();
     if (current && current.bubble) current.bubble.destroy();
     root.className = s.cls;
+
+    var unlocked = GAME.unlockedMap(ctx.content.all(), ctx.store.allUnits(), ctx.store.getPlayer().unlockAll);
+    if (!unlocked[unit.id]) { current = null; return renderLocked(root, ctx, unit); }
     ctx.store.setLastUnit(unit.id);
 
     var stars = GAME.computeStars(ctx.store.get(unit.id), unit);

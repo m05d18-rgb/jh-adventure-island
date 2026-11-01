@@ -74,6 +74,20 @@
       h('label', { class: 'small muted' }, '名字', nameInput),
       h('p', { class: 'small', style: { margin: '10px 0 0' } }, '🔥 連續 ' + streakNow + ' 天　🏅 徽章 ' + earned.length + ' / ' + GAME.BADGES.length),
       shelf,
+      h('div', { class: 'toggles' },
+        h('label', { class: 'toggle' },
+          h('input', { type: 'checkbox', checked: !!player.unlockAll, onChange: function (e) {
+            ctx.store.setUnlockAll(e.target.checked);
+            renamed = true; // 關閉時重繪地圖
+            message.textContent = e.target.checked ? '已解鎖全部關卡（家長模式）。' : '已恢復依序解鎖。';
+          } }),
+          ' 解鎖全部關卡（家長用：學校進度超前時打開）'),
+        h('label', { class: 'toggle' },
+          h('input', { type: 'checkbox', checked: window.APP_SOUND.enabled, onChange: function (e) {
+            window.APP_SOUND.setEnabled(e.target.checked);
+            if (e.target.checked) window.APP_SOUND.play('correct');
+          } }),
+          ' 音效')),
       h('p', { class: 'muted small', style: { marginTop: '14px' } }, '進度存在這個瀏覽器裡。換裝置時可以先匯出，再到另一台匯入。'),
       ctx.store.persistent ? null : h('p', { class: 'note' }, '這個瀏覽器無法儲存進度。'),
       h('div', { class: 'btn-row' },
