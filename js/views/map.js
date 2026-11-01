@@ -27,6 +27,7 @@
   }
 
   function unitNumber(unit) {
+    if (unit.short) return unit.short; // 內容檔可用 short 指定標籤上的短編號（例如「緒」「尺」）
     var m = /(\d+)/.exec(unit.title || '');
     return m ? m[1] : String(unit.order);
   }
